@@ -19,7 +19,23 @@ import LogParser._
 
 object Manifest {
 
-  val singleTest = "addi.s"
+  // val singleTest = "addi.s"
+  // val singleTest = "arithImm.s"
+  // val singleTest = "arith.s"
+  // val singleTest = "load.s"
+  // val singleTest = "load2.s"
+  // val singleTest = "forward1.s"
+  // val singleTest = "forward2.s"
+  // val singleTest = "constants.s"
+  // val singleTest = "naiveFib.s"
+
+  // val singleTest = "memoFib.s"
+  val singleTest = "square.s"
+  // val singleTest = "searchRegularO0.s"
+  // val singleTest = "palindromeO3.s"
+  // val singleTest = "palindrome.s"
+  // val singleTest = "BTreeO3.s"
+  // val singleTest = "BTreeManyO3.s"
 
   val nopPadded = true
 
