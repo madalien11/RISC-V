@@ -23,6 +23,8 @@ class IDBarrier extends MultiIOModule {
         val readData1    = Input(UInt(32.W))
         val readData2    = Input(UInt(32.W))
 
+        val stallIn    = Input(UInt(1.W))
+
         val controlSignalsOut = Output(new ControlSignals)
         val branchTypeOut     = Output(UInt(3.W))
         val op1SelectOut      = Output(UInt(1.W))
@@ -35,49 +37,53 @@ class IDBarrier extends MultiIOModule {
         val readData2Out    = Output(UInt(32.W))
     }
   )
-
-  val instruction = RegInit(UInt(32.W), 0.U)
-  instruction := io.instructionIn.instruction
-  io.instructionOut := instruction.asTypeOf(new Instruction)
-
+  val instruction = RegInit(Reg(new Instruction))
   val PC = RegInit(0.U(32.W))
-  PC := io.PCIn
-  io.PCOut := PC
-
   val controlSignalsReg = RegInit(Reg(new ControlSignals))
-  controlSignalsReg := io.controlSignals
-  io.controlSignalsOut := controlSignalsReg.asTypeOf(new ControlSignals)
-
   val branchTypeReg = RegInit(UInt(3.W), 0.U)
-  branchTypeReg := io.branchType
-  io.branchTypeOut := branchTypeReg
-  
   val op1SelectReg = RegInit(UInt(1.W), 0.U)
-  op1SelectReg := io.op1Select
-  io.op1SelectOut := op1SelectReg
-  
   val op2SelectReg = RegInit(UInt(1.W), 0.U)
-  op2SelectReg := io.op2Select
-  io.op2SelectOut := op2SelectReg
-  
   val immTypeReg = RegInit(UInt(3.W), 0.U)
-  immTypeReg := io.immType
-  io.immTypeOut := immTypeReg
-  
   val ALUopReg = RegInit(UInt(4.W), 0.U)
-  ALUopReg := io.ALUopIn
-  io.ALUopOut := ALUopReg
-  
   val readData1Reg = RegInit(UInt(32.W), 0.U)
-  readData1Reg := io.readData1
-  io.readData1Out := readData1Reg
-  
   val readData2Reg = RegInit(UInt(32.W), 0.U)
-  readData2Reg := io.readData2
-  io.readData2Out := readData2Reg
-  
   val immReg = RegInit(SInt(32.W), 0.S)
-  immReg := io.imm
-  io.immOut := immReg
+  
+  when(io.stallIn.===(1.U)){
+    instruction := Instruction.NOP
+    PC := io.PCIn
+    controlSignalsReg := 0.U.asTypeOf(new ControlSignals)
+    branchTypeReg := 0.U
+    op1SelectReg := 0.U
+    op2SelectReg := 0.U
+    immTypeReg := 0.U
+    ALUopReg := 0.U
+    readData1Reg := 0.U
+    readData2Reg := 0.U
+    immReg := 0.S
+  } .otherwise {
+    instruction := io.instructionIn
+    PC := io.PCIn
+    controlSignalsReg := io.controlSignals
+    branchTypeReg := io.branchType
+    op1SelectReg := io.op1Select
+    op2SelectReg := io.op2Select
+    immTypeReg := io.immType
+    ALUopReg := io.ALUopIn
+    readData1Reg := io.readData1
+    readData2Reg := io.readData2
+    immReg := io.imm
+  }
 
+    io.instructionOut := instruction.asTypeOf(new Instruction)
+    io.PCOut := PC
+    io.controlSignalsOut := controlSignalsReg.asTypeOf(new ControlSignals)
+    io.branchTypeOut := branchTypeReg
+    io.op1SelectOut := op1SelectReg
+    io.op2SelectOut := op2SelectReg
+    io.immTypeOut := immTypeReg
+    io.ALUopOut := ALUopReg
+    io.readData1Out := readData1Reg
+    io.readData2Out := readData2Reg
+    io.immOut := immReg
 }

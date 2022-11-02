@@ -19,6 +19,11 @@ class Execute extends MultiIOModule {
         val readData1    = Input(UInt(32.W))
         val readData2    = Input(UInt(32.W))
         val imm    = Input(SInt(32.W))
+        
+        val regAddressMEM    = Input(UInt(32.W))
+        val regAddressWB     = Input(UInt(32.W))
+        val signalMEM         = Input(UInt(32.W))
+        val signalWB         = Input(UInt(32.W))
 
         val controlSignals = Input(new ControlSignals)
         val branchType     = Input(UInt(3.W))
@@ -43,18 +48,14 @@ class Execute extends MultiIOModule {
   /**
     * TODO: Your code here.
     */
-    // printf("Instruction ALUop is %d\n", io.ALUop)
-    // printf("registerRs1 is %d\n", io.instructionIn.registerRs1)
-    // printf("immediateIType is %b\n\n", io.instructionIn.immediateIType.asUInt())
-    // printf("immediateIType is %d\n\n", io.instruction.immediateIType)
-    // alu.io.op1 := io.instructionIn.registerRs1
-    
-    // printf("io.op2Select %b\n", io.op2Select)
-    // printf("alu.io.op2 %b\n", io.readData2)
-    // printf("alu.io.op2.asSInt() %b\n", io.readData2.asSInt())
-    // alu.io.op2 := io.readData2
-    
-    // alu.io.immediateIType := io.instruction.immediateIType
+    // printf("io.EXinstructionIn.registerRd %d\n", io.instructionIn.registerRd)
+    // printf("io.EXinstructionIn.registerRs1 %d\n", io.instructionIn.registerRs1)
+    // printf("io.EXinstructionIn.registerRs2 %d\n", io.instructionIn.registerRs2)
+    // printf("EX.io.regAddressMEM %d\n", io.regAddressMEM)
+    // printf("EX.io.regAddressWB %d\n", io.regAddressWB)
+    // printf("EX.io.signalMEM %x\n", io.signalMEM)
+    // printf("EX.io.signalWB %x\n", io.signalWB)
+
     alu.io.instructionIn := io.instructionIn
     alu.io.aluOp := io.ALUop
     
@@ -63,11 +64,13 @@ class Execute extends MultiIOModule {
       alu.io.op2 := io.imm.asUInt
       io.PCOut := alu.io.aluResult
       io.dataOut := io.PCIn + 4.U
+      io.readData2Out := io.readData2
     } .elsewhen(io.controlSignals.jump && io.branchType.===(branchType.jalr)){
       alu.io.op1 := io.readData1
       alu.io.op2 := io.imm.asUInt
       io.PCOut := alu.io.aluResult.&("hfffffffe".asUInt(32.W)) 
       io.dataOut := io.PCIn + 4.U
+      io.readData2Out := io.readData2
     } .elsewhen(io.controlSignals.branch && io.branchType.===(branchType.beq)){
       alu.io.op1 := io.PCIn
       when(io.readData1.===(io.readData2)) {
@@ -77,6 +80,7 @@ class Execute extends MultiIOModule {
       }
       io.PCOut := alu.io.aluResult
       io.dataOut := 0.U
+      io.readData2Out := io.readData2
     } .elsewhen(io.controlSignals.branch && io.branchType.===(branchType.neq)) {
       alu.io.op1 := io.PCIn
       when(io.readData1.=/=(io.readData2)) {
@@ -86,6 +90,7 @@ class Execute extends MultiIOModule {
       }
       io.PCOut := alu.io.aluResult
       io.dataOut := 0.U
+      io.readData2Out := io.readData2
     } .elsewhen(io.controlSignals.branch && io.branchType.===(branchType.lt)) {
       alu.io.op1 := io.PCIn
       when(io.readData1.<(io.readData2)) {
@@ -95,6 +100,7 @@ class Execute extends MultiIOModule {
       }
       io.PCOut := alu.io.aluResult
       io.dataOut := 0.U
+      io.readData2Out := io.readData2
     } .elsewhen(io.controlSignals.branch && io.branchType.===(branchType.gte)) {
       alu.io.op1 := io.PCIn
       when(io.readData1.>(io.readData2)) {
@@ -104,6 +110,7 @@ class Execute extends MultiIOModule {
       }
       io.PCOut := alu.io.aluResult
       io.dataOut := 0.U
+      io.readData2Out := io.readData2
     } .elsewhen(io.controlSignals.branch && io.branchType.===(branchType.ltu)) {
       alu.io.op1 := io.PCIn
       when(io.readData1.asUInt.<(io.readData2.asUInt)) {
@@ -113,6 +120,7 @@ class Execute extends MultiIOModule {
       }
       io.PCOut := alu.io.aluResult
       io.dataOut := 0.U
+      io.readData2Out := io.readData2
     } .elsewhen(io.controlSignals.branch && io.branchType.===(branchType.gteu)) {
       alu.io.op1 := io.PCIn
       when(io.readData1.asUInt.>(io.readData2.asUInt)) {
@@ -122,18 +130,37 @@ class Execute extends MultiIOModule {
       }
       io.PCOut := alu.io.aluResult
       io.dataOut := 0.U
+      io.readData2Out := io.readData2
     } .otherwise {
-      alu.io.op1 := io.readData1
+
+      when(io.instructionIn.registerRs1.=/=(io.regAddressMEM) && io.instructionIn.registerRs1.=/=(io.regAddressWB)) {
+        alu.io.op1 := io.readData1
+      } .elsewhen(io.instructionIn.registerRs1.=/=(io.regAddressMEM) && io.instructionIn.registerRs1.===(io.regAddressWB)){
+        alu.io.op1 := io.signalWB
+      } .elsewhen(io.instructionIn.registerRs1.===(io.regAddressMEM)){
+        alu.io.op1 := io.signalMEM
+      } .otherwise {
+        alu.io.op1 := io.readData1
+      }
+      
       when(io.op2Select.===(0.asUInt)){
-        alu.io.op2 := io.readData2
+        when(io.instructionIn.registerRs2.=/=(io.regAddressMEM) && io.instructionIn.registerRs2.===(io.regAddressWB)){
+          alu.io.op2 := io.signalWB
+        } .elsewhen(io.instructionIn.registerRs2.=/=(io.regAddressMEM) && io.instructionIn.registerRs2.=/=(io.regAddressWB)) {
+          alu.io.op2 := io.readData2
+        } .elsewhen(io.instructionIn.registerRs2.===(io.regAddressMEM)){
+          alu.io.op2 := io.signalMEM
+        } .otherwise {
+          alu.io.op2 := io.readData2
+        }
       } otherwise {
         alu.io.op2 := io.imm.asUInt
       }
+     
       io.PCOut := io.PCIn
       io.dataOut := alu.io.aluResult
+      
     }
-    // printf("alu.io.aluResult %b\n", alu.io.aluResult)
-    // printf("io.dataOut %x\n", io.dataOut)
     
     io.instructionOut := io.instructionIn
 
@@ -143,5 +170,13 @@ class Execute extends MultiIOModule {
     io.op2SelectOut := io.op2Select
     io.immTypeOut := io.immType
     io.ALUopOut := io.ALUop
-    io.readData2Out := io.readData2
+     when(io.instructionIn.registerRs2.=/=(io.regAddressMEM) && io.instructionIn.registerRs2.===(io.regAddressWB)){
+      io.readData2Out := io.signalWB
+    } .elsewhen(io.instructionIn.registerRs2.=/=(io.regAddressMEM) && io.instructionIn.registerRs2.=/=(io.regAddressWB)) {
+      io.readData2Out := io.readData2
+    } .elsewhen(io.instructionIn.registerRs2.===(io.regAddressMEM)){
+      io.readData2Out := io.signalMEM
+    } .otherwise {
+      io.readData2Out := io.readData2
+    }
 }

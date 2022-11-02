@@ -28,12 +28,18 @@ class InstructionFetch extends MultiIOModule {
 
       val controlSignals = Input(new ControlSignals)
       val instruction = Output(new Instruction)
+      
+      val stallIn    = Input(UInt(1.W))
     })
 
-  val IMEM = Module(new IMEM)
-  val PC   = RegInit(UInt(32.W), 0.U)
+  val IMEM  = Module(new IMEM)
+  val PC    = RegInit(UInt(32.W), 0.U)
+  val PCOld = RegInit(UInt(32.W), 0.U)
+
+  PCOld := io.PC
 
 
+  printf("\n\n")
   /**
     * Setup. You should not change this code
     */
@@ -47,16 +53,20 @@ class InstructionFetch extends MultiIOModule {
     * You should expand on or rewrite the code below.
     */
 
+  val instruction = Wire(new Instruction)
   when(io.controlSignals.jump || io.controlSignals.branch) {
-    // printf("new PC is %x\n", io.PCNew)
     PC := io.PCNew
   } otherwise {
-    PC := PC + 4.U
+    when(io.stallIn.===(0.U)){
+      PC := PC + 4.U
+    } .otherwise{
+      PC := PC
+    }
   }
-  io.PC := PC
-  IMEM.io.instructionAddress := PC
+  io.PC := Mux(io.stallIn.===(0.U), PC, PCOld)
+  IMEM.io.instructionAddress := io.PC
 
-  val instruction = Wire(new Instruction)
+  
   instruction := IMEM.io.instruction.asTypeOf(new Instruction)
   io.instruction := instruction
 

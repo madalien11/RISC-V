@@ -11,15 +11,17 @@ class IFBarrier extends MultiIOModule {
         val instructionIn = Input(new Instruction)
         val instructionOut = Output(new Instruction)
         val PCOut = Output(UInt(32.W))
+
+        val stallIn    = Input(UInt(1.W))
     }
   )
-
-  io.instructionOut := io.instructionIn
-
   val PC = RegInit(0.U(32.W))
 
-  PC := io.PCIn
+  when(io.stallIn.===(1.U)){
+    PC := io.PCOut
+  } otherwise {
+    PC := io.PCIn 
+  }
+  io.instructionOut := io.instructionIn
   io.PCOut := PC
-  
-  // printf("PC in is %x, PC out is %x\n", io.PCIn, io.PCOut)
 }

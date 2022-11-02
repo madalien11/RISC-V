@@ -30,6 +30,9 @@ class InstructionDecode extends MultiIOModule {
         val writeAddress = Input(UInt(32.W))
         val immOut = Output(SInt(32.W))
         
+        val EXinstructionIn = Input(new Instruction)
+        val EXcontrolSignalsIn = Input(new ControlSignals)
+        
         val PCOut = Output(UInt(32.W))
         val instructionOut = Output(new Instruction)
         val controlSignalsOut = Output(new ControlSignals)
@@ -41,6 +44,8 @@ class InstructionDecode extends MultiIOModule {
 
         val readData1Out    = Output(UInt(32.W))
         val readData2Out    = Output(UInt(32.W))
+
+        val stallOut    = Output(UInt(1.W))
     }
   )
 
@@ -60,20 +65,14 @@ class InstructionDecode extends MultiIOModule {
     * TODO: Your code here.
     */
   io.PCOut := io.PCIn
-  // printf("registerRs1 is %d\n", io.instruction.registerRs1)
-  // printf("immediateIType is %d\n\n", io.instruction.immediateIType)
   registers.io.readAddress1 := io.instruction.registerRs1
   registers.io.readAddress2 := io.instruction.registerRs2
-  //TODO: check these stuff
   registers.io.writeEnable  := io.writeEnable
   registers.io.writeAddress := io.writeAddress
-  // printf("write data is %d\n", io.writeData)
-  // val temp = Wire(SInt(32.W))
-  // temp := io.writeData(11,0).asSInt
-  // registers.io.writeData    := temp.asUInt
   registers.io.writeData    := io.writeData
 
   decoder.instruction := io.instruction
+  io.stallOut := io.EXcontrolSignalsIn.memRead && (io.EXinstructionIn.registerRd.===(io.instruction.registerRs1) || io.EXinstructionIn.registerRd.===(io.instruction.registerRs2))
 
   io.controlSignalsOut := decoder.controlSignals
   io.branchTypeOut := decoder.branchType
@@ -83,30 +82,17 @@ class InstructionDecode extends MultiIOModule {
   io.ALUopOut := decoder.ALUop
   io.instructionOut := io.instruction
 
-  io.readData1Out := registers.io.readData1
-  io.readData2Out := registers.io.readData2
-  // when(decoder.op2Select.===(0.asUInt)){
-  //     io.readData2Out := registers.io.readData2
-  //   } otherwise {
-  //     val temp = Wire(SInt(32.W))
-  //     temp := io.instruction.immediateIType(11,0).asSInt
-  //     io.readData2Out := temp.asUInt
-  //   }
+  when(io.writeAddress.===(io.instruction.registerRs1) && io.instruction.registerRs1.=/=(0.U) && io.writeEnable){
+    io.readData1Out :=  io.writeData
+  } .otherwise {
+    io.readData1Out :=  registers.io.readData1
+  }
+  when(io.writeAddress.===(io.instruction.registerRs2) && io.instruction.registerRs2.=/=(0.U) && io.writeEnable){
+    io.readData2Out :=  io.writeData
+  } .otherwise {
+    io.readData2Out :=  registers.io.readData2
+  }
   
-  // printf("ALUop is %d\n", decoder.ALUop)
-  // printf("immediateIType is %d\n", decoder.instruction.immediateIType)
-  // printf("imm is %d\n", decoder.immType)
-  // printf("op2Select is %d\n\n", decoder.op2Select)
-
-  // io.imm := ImmFormat.ITYPE
-  // io.imm := MuxLookup(decoder.immType, ImmFormat.DC, Array(
-  //   ImmFormat.ITYPE -> io.instruction.instruction(31, 20).asSInt,
-  //   ImmFormat.STYPE -> Cat(io.instruction.instruction(31, 25), io.instruction.instruction(11,7)).asSInt,
-  //   ImmFormat.BTYPE -> Cat(io.instruction.instruction(31), io.instruction.instruction(7), io.instruction.instruction(30, 25), io.instruction.instruction(11, 8), 0.U(1.W)).asSInt,
-  //   ImmFormat.UTYPE -> Cat(io.instruction.instruction(31, 12), 0.U(12.W)).asSInt,
-  //   ImmFormat.JTYPE -> Cat(io.instruction.instruction(31), io.instruction.instruction(19, 12), io.instruction.instruction(20), io.instruction.instruction(30, 25), io.instruction.instruction(24, 21), 0.U(1.W)).asSInt,
-  //   ImmFormat.SHAMT -> io.instruction.instruction(19, 15).zext,
-  // ))
   io.immOut := MuxLookup(decoder.immType, 0.S(32.W), Array(
     ImmFormat.ITYPE -> io.instruction.immediateIType,
     ImmFormat.STYPE -> io.instruction.immediateSType,

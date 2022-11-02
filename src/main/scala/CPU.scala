@@ -56,9 +56,12 @@ class CPU extends MultiIOModule {
     */
     IFBarrier.PCIn := IF.io.PC
     IFBarrier.instructionIn := IF.io.instruction
-
+    IFBarrier.stallIn := ID.io.stallOut
+    
     ID.io.PCIn := IFBarrier.PCOut
     ID.io.instruction := IFBarrier.instructionOut
+    ID.io.EXcontrolSignalsIn := EX.io.controlSignalsOut
+    ID.io.EXinstructionIn := EX.io.instructionOut
     
     IDBarrier.instructionIn := ID.io.instructionOut
     IDBarrier.PCIn := ID.io.PCOut
@@ -71,6 +74,7 @@ class CPU extends MultiIOModule {
     IDBarrier.readData1 := ID.io.readData1Out
     IDBarrier.readData2 := ID.io.readData2Out
     IDBarrier.imm := ID.io.immOut
+    IDBarrier.stallIn := ID.io.stallOut
     
     EX.io.PCIn := IDBarrier.PCOut
     EX.io.instructionIn := IDBarrier.instructionOut
@@ -83,6 +87,17 @@ class CPU extends MultiIOModule {
     EX.io.op2Select := IDBarrier.op2SelectOut
     EX.io.immType := IDBarrier.immTypeOut
     EX.io.ALUop := IDBarrier.ALUopOut
+
+    EX.io.regAddressMEM := MEM.io.instructionOut.registerRd
+    EX.io.regAddressWB := MEMBarrier.instructionOut.registerRd
+    EX.io.signalMEM := EXBarrier.dataOut
+    when(MEMBarrier.controlSignalsOut.memRead) {
+      EX.io.signalWB := MEM.io.memDataOut
+      printf("\n\n %d \n\n", MEM.io.memDataOut)
+    } otherwise {
+      EX.io.signalWB := MEMBarrier.dataOut
+      // printf("\n\n %d \n\n", MEMBarrier.dataOut)
+    }
     
     EXBarrier.PCIn := EX.io.PCOut
     EXBarrier.instructionIn := EX.io.instructionOut
@@ -94,9 +109,11 @@ class CPU extends MultiIOModule {
     EXBarrier.immType := EX.io.immTypeOut
     EXBarrier.ALUop := EX.io.ALUopOut
     EXBarrier.readData2In := EX.io.readData2Out
+    EXBarrier.stallIn := ID.io.stallOut
 
     IF.io.controlSignals := EXBarrier.controlSignalsOut
     IF.io.PCNew := EXBarrier.PCOut
+    IF.io.stallIn := ID.io.stallOut
     // MEM.io.PCIn := EXBarrier.PCOut
     MEM.io.instructionIn := EXBarrier.instructionOut
     // MEM.io.dataAddress := EXBarrier.instructionOut.registerRd
@@ -108,6 +125,7 @@ class CPU extends MultiIOModule {
     MEMBarrier.dataIn := MEM.io.dataOut
     MEMBarrier.controlSignals := MEM.io.controlSignalsOut
     MEMBarrier.memDataIn := MEM.io.memDataOut
+    MEMBarrier.stallIn := ID.io.stallOut
 
     // printf("MEM memDataOut %d\n\n", MEM.io.memDataOut)
     ID.io.writeAddress := MEMBarrier.instructionOut.registerRd
