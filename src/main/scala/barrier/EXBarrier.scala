@@ -23,8 +23,8 @@ class EXBarrier extends MultiIOModule {
         val readData2In    = Input(UInt(32.W))
 
         val stallIn    = Input(UInt(1.W))
-        val isBranching = Input(Bool())
-        val isBranchingOut = Output(Bool())
+        val isBranchingIn = Input(Bool())
+        val isBranching = Output(Bool())
 
         val controlSignalsOut = Output(new ControlSignals)
         val branchTypeOut     = Output(UInt(3.W))
@@ -45,32 +45,18 @@ class EXBarrier extends MultiIOModule {
   val immTypeReg = RegInit(UInt(3.W), 0.U)
   val ALUopReg = RegInit(UInt(4.W), 0.U)
   val readData2Reg = RegInit(UInt(32.W), 0.U)
-  val branchReg = RegInit(Reg(Bool()))
-  // branchReg := io.isBranching
-  // io.isBranchingOut := branchReg
-  io.isBranchingOut := io.isBranching
-  
-  // when(io.isBranching){
-  //   controlSignalsReg := ControlSignals.nop
-  //   instruction := Instruction.NOP
-  //   branchTypeReg := 0.U
-  //   op1SelectReg := 0.U
-  //   op2SelectReg := 0.U
-  //   immTypeReg := 0.U
-  //   ALUopReg := 15.U
-  //   // readData1Reg := 0.U
-  //   readData2Reg := 0.U
-  //   // immReg := 0.S
-  // } .otherwise {
-    instruction := io.instructionIn
-    controlSignalsReg := io.controlSignals    
-    branchTypeReg := io.branchType    
-    op1SelectReg := io.op1Select    
-    op2SelectReg := io.op2Select    
-    immTypeReg := io.immType    
-    ALUopReg := io.ALUop    
-    readData2Reg := io.readData2In 
-  // }
+  val branchReg = RegInit(Bool(), false.B)
+  branchReg := io.isBranchingIn
+  io.isBranching := branchReg
+
+  instruction := io.instructionIn
+  controlSignalsReg := io.controlSignals    
+  branchTypeReg := io.branchType    
+  op1SelectReg := io.op1Select    
+  op2SelectReg := io.op2Select    
+  immTypeReg := io.immType    
+  ALUopReg := io.ALUop    
+  readData2Reg := io.readData2In 
   data := io.dataIn
   PC := io.PCIn
 

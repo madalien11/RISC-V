@@ -31,7 +31,6 @@ class InstructionFetch extends MultiIOModule {
       val instruction = Output(new Instruction)
       
       val stallIn    = Input(UInt(1.W))
-      val isBranching = Input(Bool())
     })
 
   val IMEM  = Module(new IMEM)
@@ -41,7 +40,7 @@ class InstructionFetch extends MultiIOModule {
   PCOld := io.PC
 
 
-  printf("\n\n")
+  // printf("\n\n")
   /**
     * Setup. You should not change this code
     */
@@ -56,9 +55,7 @@ class InstructionFetch extends MultiIOModule {
     */
 
   val instruction = Wire(new Instruction)
-  // when(io.isBranching) {
   when(io.controlSignals.jump || io.controlSignals.branch) {
-    // printf("are we even branching")
     PC := io.PCNew
   } otherwise {
     when(io.stallIn.===(1.U)){
@@ -70,21 +67,8 @@ class InstructionFetch extends MultiIOModule {
   io.PC := Mux(io.stallIn.===(1.U), PCOld, PC)
   IMEM.io.instructionAddress := io.PC
 
-  
   instruction := IMEM.io.instruction.asTypeOf(new Instruction)
-  // io.instruction := instruction
-  // when(io.isBranching){
-  // when(io.controlSignals.jump || io.controlSignals.branch){
-  //   printf("IFBranching is  %d\n", io.isBranching)
-  //   io.instruction := Instruction.NOP
-  // } .otherwise {
-  // }
-    io.instruction := instruction
-
-  // io.instruction := MuxCase(instruction, Seq(
-  //   (io.controlSignals.jump || io.controlSignals.branch) -> Instruction.NOP,
-  //   io.stallIn.===(1.U) -> io.instruction,
-  // ))
+  io.instruction := instruction
 
   /**
     * Setup. You should not change this code.
