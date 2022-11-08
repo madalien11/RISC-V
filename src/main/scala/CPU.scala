@@ -64,7 +64,7 @@ class CPU extends MultiIOModule {
     ID.io.instruction := IFBarrier.instructionOut
     ID.io.EXcontrolSignalsIn := EX.io.controlSignalsOut
     ID.io.EXinstructionIn := EX.io.instructionOut
-    ID.io.isBranching := EXBarrier.isBranching
+    ID.io.isBranching := EX.io.isBranching
     ID.io.isBranchingCS := EXBarrier.controlSignalsOut
     
     IDBarrier.instructionIn := ID.io.instructionOut
@@ -79,7 +79,7 @@ class CPU extends MultiIOModule {
     IDBarrier.readData2 := ID.io.readData2Out
     IDBarrier.imm := ID.io.immOut
     IDBarrier.stallIn := ID.io.stallOut
-    IDBarrier.isBranching := EXBarrier.isBranching
+    IDBarrier.isBranching := EX.io.isBranching
     IDBarrier.isBranchingCS := EXBarrier.controlSignalsOut
     
     EX.io.PCIn := IDBarrier.PCOut
@@ -97,8 +97,6 @@ class CPU extends MultiIOModule {
     EX.io.regAddressMEM := MEM.io.instructionOut.registerRd
     EX.io.regAddressWB := MEMBarrier.instructionOut.registerRd
     EX.io.signalMEM := EXBarrier.dataOut
-    EX.io.regWriteMEM := MEM.io.controlSignalsOut.regWrite
-    EX.io.regWriteWB := MEMBarrier.controlSignalsOut.regWrite
     when(MEMBarrier.controlSignalsOut.memRead) {
       EX.io.signalWB := MEM.io.memDataOut
     } otherwise {
@@ -116,12 +114,12 @@ class CPU extends MultiIOModule {
     EXBarrier.ALUop := EX.io.ALUopOut
     EXBarrier.readData2In := EX.io.readData2Out
     EXBarrier.stallIn := ID.io.stallOut
-    EXBarrier.isBranchingIn := EX.io.isBranching
+    EXBarrier.isBranching := EX.io.isBranching
 
     IF.io.controlSignals := EXBarrier.controlSignalsOut
     IF.io.PCNew := EXBarrier.PCOut
     IF.io.stallIn := ID.io.stallOut
-    IF.io.isBranching := EXBarrier.isBranching
+    IF.io.isBranching := EX.io.isBranching
     MEM.io.instructionIn := EXBarrier.instructionOut
     MEM.io.dataIn := EXBarrier.dataOut
     MEM.io.controlSignals := EXBarrier.controlSignalsOut

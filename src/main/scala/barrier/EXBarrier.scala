@@ -23,8 +23,8 @@ class EXBarrier extends MultiIOModule {
         val readData2In    = Input(UInt(32.W))
 
         val stallIn    = Input(UInt(1.W))
-        val isBranchingIn = Input(Bool())
-        val isBranching = Output(Bool())
+        val isBranching = Input(Bool())
+        val isBranchingOut = Output(Bool())
 
         val controlSignalsOut = Output(new ControlSignals)
         val branchTypeOut     = Output(UInt(3.W))
@@ -45,10 +45,10 @@ class EXBarrier extends MultiIOModule {
   val immTypeReg = RegInit(UInt(3.W), 0.U)
   val ALUopReg = RegInit(UInt(4.W), 0.U)
   val readData2Reg = RegInit(UInt(32.W), 0.U)
-  val branchReg = RegInit(Bool(), false.B)
-  branchReg := io.isBranchingIn
-  io.isBranching := branchReg
-  // io.isBranchingOut := io.isBranching
+  val branchReg = RegInit(Reg(Bool()))
+  // branchReg := io.isBranching
+  // io.isBranchingOut := branchReg
+  io.isBranchingOut := io.isBranching
   
   // when(io.isBranching){
   //   controlSignalsReg := ControlSignals.nop

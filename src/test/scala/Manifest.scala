@@ -27,10 +27,10 @@ object Manifest {
   // val singleTest = "forward1.s"
   // val singleTest = "forward2.s"
   // val singleTest = "constants.s"
-  // val singleTest = "naiveFib.s"
+  val singleTest = "naiveFib.s"
 
   // val singleTest = "memoFib.s"
-  val singleTest = "square.s"
+  // val singleTest = "square.s"
   // val singleTest = "searchRegularO0.s"
   // val singleTest = "palindromeO3.s"
   // val singleTest = "palindrome.s"

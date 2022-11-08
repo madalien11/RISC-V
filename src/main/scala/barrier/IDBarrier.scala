@@ -44,10 +44,9 @@ class IDBarrier extends MultiIOModule {
   // printf("registerRs1 is  %b\n", io.instructionIn.registerRs1)
   // printf("registerRs2 is  %b\n", io.instructionIn.registerRs2)
   // printf("registerRd  is  %b\n", io.instructionIn.registerRd)
-  // when(io.isBranching) {
-  //   printf("IDBarrier Branching is  %d\n", io.isBranching)
-  // }
-
+  when(io.isBranching) {
+    printf("IDBarrier Branching is  %d\n", io.isBranching)
+  }
 
   val instruction = RegInit(Reg(new Instruction))
   val PC = RegInit(0.U(32.W))
@@ -61,24 +60,24 @@ class IDBarrier extends MultiIOModule {
   val readData2Reg = RegInit(UInt(32.W), 0.U)
   val immReg = RegInit(SInt(32.W), 0.S)
   val branchReg = RegInit(Reg(Bool()))
+  // val branchReg2 = RegInit(Reg(Bool()))
   
   branchReg := io.isBranching
 
   // when(io.isBranchingCS.jump || io.isBranchingCS.branch) {
-  // when(io.isBranching) {
-  //   instruction := Instruction.NOP
-  //   PC := io.PCIn
-  //   controlSignalsReg := ControlSignals.nop
-  //   branchTypeReg := 0.U
-  //   op1SelectReg := 0.U
-  //   op2SelectReg := 0.U
-  //   immTypeReg := 0.U
-  //   ALUopReg := 15.U
-  //   readData1Reg := 0.U
-  //   readData2Reg := 0.U
-  //   immReg := 0.S
-  // } .else
-  when(io.stallIn.===(1.U) || io.isBranching || branchReg) {
+  when(io.isBranching) {
+    instruction := Instruction.NOP
+    
+    controlSignalsReg := ControlSignals.nop
+    branchTypeReg := 0.U
+    op1SelectReg := 0.U
+    op2SelectReg := 0.U
+    immTypeReg := 0.U
+    ALUopReg := 15.U
+    readData1Reg := 0.U
+    readData2Reg := 0.U
+    immReg := 0.S
+  } .elsewhen(io.stallIn.===(1.U)) {
     controlSignalsReg := ControlSignals.nop
     PC := io.PCIn
     // controlSignalsReg := 0.U.asTypeOf(new ControlSignals)

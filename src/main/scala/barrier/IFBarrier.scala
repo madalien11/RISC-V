@@ -18,7 +18,7 @@ class IFBarrier extends MultiIOModule {
     }
   )
   val PC = RegInit(0.U(32.W))
-  // val branchReg = RegInit(Reg(Bool()))
+  val branchReg = RegInit(Reg(Bool()))
   // val instruction = RegInit(Reg(new Instruction))
 
   when(io.stallIn.===(1.U)) {
@@ -27,10 +27,11 @@ class IFBarrier extends MultiIOModule {
     PC := io.PCIn 
   }
 
-  // branchReg := io.isBranching
+  branchReg := io.isBranching
 
-  // when(io.controlSignals.jump || io.controlSignals.branch){
-  when(io.isBranching){
+  when(io.controlSignals.jump || io.controlSignals.branch){
+  // when(io.isBranching){
+    printf("IFBarrier Branching is  %d\n", io.isBranching)
     io.instructionOut := Instruction.NOP
   } .otherwise {
     io.instructionOut := io.instructionIn
