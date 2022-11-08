@@ -102,7 +102,6 @@ class Decoder() extends Module {
 
   val NOP = List(N, N, N, N, N, branchType.DC, rs1, rs2, ImmFormat.DC, ALUOps.DC)
 
-  // printf("instruction in Decoder is %d\n", io.instruction.asUInt())
   val decodedControlSignals = ListLookup(
     io.instruction.asUInt(),
     NOP,

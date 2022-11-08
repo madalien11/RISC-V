@@ -46,11 +46,13 @@ class InstructionDecode extends MultiIOModule {
         val readData2Out    = Output(UInt(32.W))
 
         val stallOut    = Output(UInt(1.W))
+        val isBranching = Input(Bool())
+        val isBranchingCS = Input(new ControlSignals)
     }
   )
 
   val registers = Module(new Registers)
-  val decoder   = Module(new Decoder).io
+  
 
 
   /**
@@ -66,14 +68,31 @@ class InstructionDecode extends MultiIOModule {
     */
   io.PCOut := io.PCIn
   registers.io.readAddress1 := io.instruction.registerRs1
+  // registers.io.readAddress1 := Mux(io.isBranching, Instruction.NOP.registerRs1, io.instruction.registerRs1) 
   registers.io.readAddress2 := io.instruction.registerRs2
+  // registers.io.readAddress2 := Mux(io.isBranching, Instruction.NOP.registerRs2, io.instruction.registerRs2) 
   registers.io.writeEnable  := io.writeEnable
   registers.io.writeAddress := io.writeAddress
   registers.io.writeData    := io.writeData
 
+  // when(io.isBranchingCS.jump || io.isBranchingCS.branch){
+  // // when(io.isBranching) {
+  //   printf("IDBranching is  %d\n", io.isBranching)
+  //   io.controlSignalsOut := ControlSignals.nop
+  //   // io.controlSignalsOut := 0.U.asTypeOf(new ControlSignals)
+  //   io.instructionOut := Instruction.NOP
+  //   io.branchTypeOut := 0.U
+  //   io.op1SelectOut := 0.U
+  //   io.op2SelectOut := 0.U
+  //   io.immTypeOut := 0.U
+  //   io.ALUopOut := 15.U
+  //   io.readData1Out := 0.U
+  //   io.readData2Out := 0.U
+  //   // immReg := 0.S
+  //   io.immOut := 0.S
+  // } .otherwise {
+  val decoder   = Module(new Decoder).io
   decoder.instruction := io.instruction
-  io.stallOut := io.EXcontrolSignalsIn.memRead && (io.EXinstructionIn.registerRd.===(io.instruction.registerRs1) || io.EXinstructionIn.registerRd.===(io.instruction.registerRs2))
-
   io.controlSignalsOut := decoder.controlSignals
   io.branchTypeOut := decoder.branchType
   io.op1SelectOut := decoder.op1Select
@@ -81,6 +100,14 @@ class InstructionDecode extends MultiIOModule {
   io.immTypeOut := decoder.immType
   io.ALUopOut := decoder.ALUop
   io.instructionOut := io.instruction
+  io.immOut := MuxLookup(decoder.immType, 0.S(32.W), Array(
+    ImmFormat.ITYPE -> io.instruction.immediateIType,
+    ImmFormat.STYPE -> io.instruction.immediateSType,
+    ImmFormat.BTYPE -> io.instruction.immediateBType,
+    ImmFormat.UTYPE -> io.instruction.immediateUType,
+    ImmFormat.JTYPE -> io.instruction.immediateJType,
+    ImmFormat.DC -> io.instruction.immediateZType,
+  ))
 
   when(io.writeAddress.===(io.instruction.registerRs1) && io.instruction.registerRs1.=/=(0.U) && io.writeEnable){
     io.readData1Out :=  io.writeData
@@ -92,15 +119,10 @@ class InstructionDecode extends MultiIOModule {
   } .otherwise {
     io.readData2Out :=  registers.io.readData2
   }
+  // }
+
   
-  io.immOut := MuxLookup(decoder.immType, 0.S(32.W), Array(
-    ImmFormat.ITYPE -> io.instruction.immediateIType,
-    ImmFormat.STYPE -> io.instruction.immediateSType,
-    ImmFormat.BTYPE -> io.instruction.immediateBType,
-    ImmFormat.UTYPE -> io.instruction.immediateUType,
-    ImmFormat.JTYPE -> io.instruction.immediateJType,
-    ImmFormat.DC -> io.instruction.immediateZType,
-  ))
+  io.stallOut := io.EXcontrolSignalsIn.memRead && (io.EXinstructionIn.registerRd.===(io.instruction.registerRs1) || io.EXinstructionIn.registerRd.===(io.instruction.registerRs2))
 
 
 }

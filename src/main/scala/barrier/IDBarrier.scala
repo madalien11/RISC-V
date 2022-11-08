@@ -24,6 +24,8 @@ class IDBarrier extends MultiIOModule {
         val readData2    = Input(UInt(32.W))
 
         val stallIn    = Input(UInt(1.W))
+        val isBranching = Input(Bool())
+        val isBranchingCS = Input(new ControlSignals)
 
         val controlSignalsOut = Output(new ControlSignals)
         val branchTypeOut     = Output(UInt(3.W))
@@ -37,6 +39,16 @@ class IDBarrier extends MultiIOModule {
         val readData2Out    = Output(UInt(32.W))
     }
   )
+
+  // printf("instruction is  %b\n", io.instructionIn.opcode)
+  // printf("registerRs1 is  %b\n", io.instructionIn.registerRs1)
+  // printf("registerRs2 is  %b\n", io.instructionIn.registerRs2)
+  // printf("registerRd  is  %b\n", io.instructionIn.registerRd)
+  // when(io.isBranching) {
+  //   printf("IDBarrier Branching is  %d\n", io.isBranching)
+  // }
+
+
   val instruction = RegInit(Reg(new Instruction))
   val PC = RegInit(0.U(32.W))
   val controlSignalsReg = RegInit(Reg(new ControlSignals))
@@ -48,16 +60,34 @@ class IDBarrier extends MultiIOModule {
   val readData1Reg = RegInit(UInt(32.W), 0.U)
   val readData2Reg = RegInit(UInt(32.W), 0.U)
   val immReg = RegInit(SInt(32.W), 0.S)
+  val branchReg = RegInit(Reg(Bool()))
   
-  when(io.stallIn.===(1.U)){
-    instruction := Instruction.NOP
+  branchReg := io.isBranching
+
+  // when(io.isBranchingCS.jump || io.isBranchingCS.branch) {
+  // when(io.isBranching) {
+  //   instruction := Instruction.NOP
+  //   PC := io.PCIn
+  //   controlSignalsReg := ControlSignals.nop
+  //   branchTypeReg := 0.U
+  //   op1SelectReg := 0.U
+  //   op2SelectReg := 0.U
+  //   immTypeReg := 0.U
+  //   ALUopReg := 15.U
+  //   readData1Reg := 0.U
+  //   readData2Reg := 0.U
+  //   immReg := 0.S
+  // } .else
+  when(io.stallIn.===(1.U) || io.isBranching || branchReg) {
+    controlSignalsReg := ControlSignals.nop
     PC := io.PCIn
-    controlSignalsReg := 0.U.asTypeOf(new ControlSignals)
+    // controlSignalsReg := 0.U.asTypeOf(new ControlSignals)
+    instruction := Instruction.NOP
     branchTypeReg := 0.U
     op1SelectReg := 0.U
     op2SelectReg := 0.U
     immTypeReg := 0.U
-    ALUopReg := 0.U
+    ALUopReg := 15.U
     readData1Reg := 0.U
     readData2Reg := 0.U
     immReg := 0.S
@@ -74,16 +104,32 @@ class IDBarrier extends MultiIOModule {
     readData2Reg := io.readData2
     immReg := io.imm
   }
-
-    io.instructionOut := instruction.asTypeOf(new Instruction)
-    io.PCOut := PC
-    io.controlSignalsOut := controlSignalsReg.asTypeOf(new ControlSignals)
-    io.branchTypeOut := branchTypeReg
-    io.op1SelectOut := op1SelectReg
-    io.op2SelectOut := op2SelectReg
-    io.immTypeOut := immTypeReg
-    io.ALUopOut := ALUopReg
-    io.readData1Out := readData1Reg
-    io.readData2Out := readData2Reg
-    io.immOut := immReg
+  
+  // branchReg2 := branchReg
+  // when(io.isBranching) {
+  //   // PC := io.PCOut
+  //   controlSignalsReg := ControlSignals.nop
+  //   // controlSignalsReg := 0.U.asTypeOf(new ControlSignals)
+  //   instruction := Instruction.NOP
+  //   branchTypeReg := 0.U
+  //   op1SelectReg := 0.U
+  //   op2SelectReg := 0.U
+  //   immTypeReg := 0.U
+  //   ALUopReg := 15.U
+  //   readData1Reg := 0.U
+  //   readData2Reg := 0.U
+  //   immReg := 0.S
+  // }
+  
+  io.instructionOut := instruction.asTypeOf(new Instruction)
+  io.PCOut := PC
+  io.controlSignalsOut := controlSignalsReg.asTypeOf(new ControlSignals)
+  io.branchTypeOut := branchTypeReg
+  io.op1SelectOut := op1SelectReg
+  io.op2SelectOut := op2SelectReg
+  io.immTypeOut := immTypeReg
+  io.ALUopOut := ALUopReg
+  io.readData1Out := readData1Reg
+  io.readData2Out := readData2Reg
+  io.immOut := immReg
 }

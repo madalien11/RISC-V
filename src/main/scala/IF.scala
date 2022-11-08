@@ -1,6 +1,7 @@
 package FiveStage
 import chisel3._
 import chisel3.experimental.MultiIOModule
+import chisel3.util.{ BitPat, MuxCase }
 
 class InstructionFetch extends MultiIOModule {
 
@@ -30,6 +31,7 @@ class InstructionFetch extends MultiIOModule {
       val instruction = Output(new Instruction)
       
       val stallIn    = Input(UInt(1.W))
+      val isBranching = Input(Bool())
     })
 
   val IMEM  = Module(new IMEM)
@@ -39,7 +41,7 @@ class InstructionFetch extends MultiIOModule {
   PCOld := io.PC
 
 
-  printf("\n\n")
+  // printf("\n\n")
   /**
     * Setup. You should not change this code
     */
@@ -54,21 +56,33 @@ class InstructionFetch extends MultiIOModule {
     */
 
   val instruction = Wire(new Instruction)
+  // when(io.isBranching) {
   when(io.controlSignals.jump || io.controlSignals.branch) {
+    // printf("are we even branching")
     PC := io.PCNew
   } otherwise {
-    when(io.stallIn.===(0.U)){
-      PC := PC + 4.U
-    } .otherwise{
+    when(io.stallIn.===(1.U)){
       PC := PC
+    } .otherwise{
+      PC := PC + 4.U
     }
   }
-  io.PC := Mux(io.stallIn.===(0.U), PC, PCOld)
+  io.PC := Mux(io.stallIn.===(1.U), PCOld, PC)
   IMEM.io.instructionAddress := io.PC
 
-  
   instruction := IMEM.io.instruction.asTypeOf(new Instruction)
-  io.instruction := instruction
+  // io.instruction := instruction
+  when(io.isBranching){
+  // when(io.controlSignals.jump || io.controlSignals.branch){
+    io.instruction := Instruction.NOP
+  } .otherwise {
+    io.instruction := instruction
+  }
+
+  // io.instruction := MuxCase(instruction, Seq(
+  //   (io.controlSignals.jump || io.controlSignals.branch) -> Instruction.NOP,
+  //   io.stallIn.===(1.U) -> io.instruction,
+  // ))
 
   /**
     * Setup. You should not change this code.
