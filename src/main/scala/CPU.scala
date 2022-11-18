@@ -30,6 +30,7 @@ class CPU extends MultiIOModule {
   val ID  = Module(new InstructionDecode)
   val EX  = Module(new Execute)
   val MEM = Module(new MemoryFetch)
+  val BHT = Module(new BHT)
   // val WB  = Module(new Execute) (You may not need this one?)
 
 
@@ -58,6 +59,7 @@ class CPU extends MultiIOModule {
     IFBarrier.instructionIn := IF.io.instruction
     IFBarrier.stallIn := ID.io.stallOut
     IFBarrier.isBranching := EX.io.isBranching
+    IFBarrier.predictionIsTakenIn := BHT.io.predictionIsTaken
     
     ID.io.PCIn := IFBarrier.PCOut
     ID.io.instruction := IFBarrier.instructionOut
@@ -66,6 +68,9 @@ class CPU extends MultiIOModule {
     
     IDBarrier.instructionIn := ID.io.instructionOut
     IDBarrier.PCIn := ID.io.PCOut
+    IDBarrier.PCBranchIn := ID.io.PCBranchOut
+    IDBarrier.initPCBranchIn := ID.io.initPCBranchOut
+    IDBarrier.predictionIsTakenIn := BHT.io.predictionIsTaken
     IDBarrier.controlSignals := ID.io.controlSignalsOut
     IDBarrier.branchType := ID.io.branchTypeOut
     IDBarrier.op1Select := ID.io.op1SelectOut
@@ -78,6 +83,7 @@ class CPU extends MultiIOModule {
     IDBarrier.stallIn := ID.io.stallOut
     IDBarrier.isBranching := EXBarrier.isBranching
     
+    EX.io.predictionIsTakenIn := IDBarrier.predictionIsTakenOut
     EX.io.PCIn := IDBarrier.PCOut
     EX.io.instructionIn := IDBarrier.instructionOut
     EX.io.readData1 := IDBarrier.readData1Out
@@ -90,6 +96,7 @@ class CPU extends MultiIOModule {
     EX.io.immType := IDBarrier.immTypeOut
     EX.io.ALUop := IDBarrier.ALUopOut
 
+    EX.io.predictionIsWrong := IDBarrier.predictionIsTakenOut ^ EX.io.branchTaken
     EX.io.regAddressMEM := MEM.io.instructionOut.registerRd
     EX.io.regAddressWB := MEMBarrier.instructionOut.registerRd
     EX.io.signalMEM := EXBarrier.dataOut
@@ -113,9 +120,18 @@ class CPU extends MultiIOModule {
     EXBarrier.readData2In := EX.io.readData2Out
     EXBarrier.stallIn := ID.io.stallOut
     EXBarrier.isBranchingIn := EX.io.isBranching
+    EXBarrier.branchTakenIn := EX.io.branchTaken
+    EXBarrier.PCBranchIn := IDBarrier.PCBranchOut
+    EXBarrier.initPCBranchIn := IDBarrier.initPCBranchOut
 
-    IF.io.controlSignals := EXBarrier.controlSignalsOut
-    IF.io.PCNew := EXBarrier.PCOut
+    IF.io.controlSignals := IDBarrier.controlSignalsOut
+    IF.io.branchControlSignals := ID.io.controlSignalsOut
+    IF.io.PCbranch := IDBarrier.PCBranchOut
+    IF.io.initPCbranch := IDBarrier.initPCBranchOut
+    IF.io.PCbranchFromID := ID.io.PCBranchOut
+    IF.io.initPCbranchFromID := ID.io.initPCBranchOut
+    IF.io.branchTaken := EX.io.branchTaken
+    IF.io.PCjump := EX.io.PCOut
     IF.io.stallIn := ID.io.stallOut
     MEM.io.instructionIn := EXBarrier.instructionOut
     MEM.io.dataIn := EXBarrier.dataOut
@@ -135,4 +151,12 @@ class CPU extends MultiIOModule {
       ID.io.writeData := MEMBarrier.dataOut
     }
     ID.io.writeEnable := MEMBarrier.controlSignalsOut.regWrite
+
+    BHT.io.key := Mux(ID.io.controlSignalsOut.branch, IF.io.instruction.instruction(6,0).asUInt, "b0000000".U)
+    BHT.io.predictionIsWrong := Mux(IDBarrier.predictionIsTakenOut ^ EX.io.branchTaken, IDBarrier.instructionOut.instruction(6,0).asUInt, "b0000000".U)
+    IF.io.predictionIsTaken := BHT.io.predictionIsTaken
+    IF.io.PCbranchFromEX := EX.io.PCOut
+    IF.io.predictionIsWrong := IDBarrier.predictionIsTakenOut ^ EX.io.branchTaken
+    IFBarrier.predictionIsWrong := IDBarrier.predictionIsTakenOut ^ EX.io.branchTaken
+    IDBarrier.predictionIsWrong := IDBarrier.predictionIsTakenOut ^ EX.io.branchTaken
 }

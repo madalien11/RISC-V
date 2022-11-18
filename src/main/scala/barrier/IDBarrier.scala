@@ -9,6 +9,10 @@ class IDBarrier extends MultiIOModule {
     new Bundle {
         val PCIn = Input(UInt(32.W))
         val PCOut = Output(UInt(32.W))
+        val PCBranchIn = Input(UInt(32.W))
+        val PCBranchOut = Output(UInt(32.W))
+        val initPCBranchIn = Input(UInt(32.W))
+        val initPCBranchOut = Output(UInt(32.W))
         val instructionIn = Input(new Instruction)
         val instructionOut = Output(new Instruction)
 
@@ -25,6 +29,9 @@ class IDBarrier extends MultiIOModule {
 
         val stallIn    = Input(UInt(1.W))
         val isBranching = Input(Bool())
+        val predictionIsWrong = Input(Bool())
+        val predictionIsTakenIn    = Input(Bool())
+        val predictionIsTakenOut   = Output(Bool())
 
         val controlSignalsOut = Output(new ControlSignals)
         val branchTypeOut     = Output(UInt(3.W))
@@ -39,8 +46,12 @@ class IDBarrier extends MultiIOModule {
     }
   )
 
+  // val predictionIsTaken1 = RegInit(Reg(Bool()))
   val instruction = RegInit(Reg(new Instruction))
   val PC = RegInit(0.U(32.W))
+  val PCBranch = RegInit(0.U(32.W))
+  val initPCBranch = RegInit(0.U(32.W))
+  val predictionIsTaken = RegInit(Reg(Bool()))  
   val controlSignalsReg = RegInit(Reg(new ControlSignals))
   val branchTypeReg = RegInit(UInt(3.W), 0.U)
   val op1SelectReg = RegInit(UInt(1.W), 0.U)
@@ -53,9 +64,12 @@ class IDBarrier extends MultiIOModule {
   val branchReg = RegInit(Reg(Bool()))  
   branchReg := io.isBranching
 
-  when(io.stallIn.===(1.U) || io.isBranching || branchReg) {
+  when(io.stallIn.===(1.U) || io.isBranching) {
     controlSignalsReg := ControlSignals.nop
     PC := io.PCIn
+    PCBranch := io.PCBranchIn
+    initPCBranch := io.initPCBranchIn
+    predictionIsTaken := io.predictionIsTakenIn
     instruction := Instruction.NOP
     branchTypeReg := 0.U
     op1SelectReg := 0.U
@@ -68,6 +82,9 @@ class IDBarrier extends MultiIOModule {
   } .otherwise {
     instruction := io.instructionIn
     PC := io.PCIn
+    PCBranch := io.PCBranchIn
+    initPCBranch := io.initPCBranchIn
+    predictionIsTaken := io.predictionIsTakenIn
     controlSignalsReg := io.controlSignals
     branchTypeReg := io.branchType
     op1SelectReg := io.op1Select
@@ -81,6 +98,9 @@ class IDBarrier extends MultiIOModule {
   
   io.instructionOut := instruction.asTypeOf(new Instruction)
   io.PCOut := PC
+  io.PCBranchOut := PCBranch
+  io.initPCBranchOut := initPCBranch
+  io.predictionIsTakenOut := predictionIsTaken
   io.controlSignalsOut := controlSignalsReg.asTypeOf(new ControlSignals)
   io.branchTypeOut := branchTypeReg
   io.op1SelectOut := op1SelectReg
@@ -90,4 +110,5 @@ class IDBarrier extends MultiIOModule {
   io.readData1Out := readData1Reg
   io.readData2Out := readData2Reg
   io.immOut := immReg
+
 }

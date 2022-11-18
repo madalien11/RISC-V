@@ -24,13 +24,22 @@ class InstructionFetch extends MultiIOModule {
     */
   val io = IO(
     new Bundle {
-      val PCNew = Input(UInt(32.W))
-      val PC = Output(UInt())
+      val PCjump         = Input(UInt(32.W))
+      val PCbranch       = Input(UInt(32.W))
+      val initPCbranch   = Input(UInt(32.W))
+      val PCbranchFromID       = Input(UInt(32.W))
+      val initPCbranchFromID   = Input(UInt(32.W))
+      val PCbranchFromEX   = Input(UInt(32.W))
+      val PC             = Output(UInt())
 
       val controlSignals = Input(new ControlSignals)
-      val instruction = Output(new Instruction)
+      val branchControlSignals = Input(new ControlSignals)
+      val instruction    = Output(new Instruction)
       
-      val stallIn    = Input(UInt(1.W))
+      val stallIn        = Input(UInt(1.W))
+      val branchTaken    = Input(Bool())
+      val predictionIsTaken   = Input(Bool())
+      val predictionIsWrong   = Input(Bool())
     })
 
   val IMEM  = Module(new IMEM)
@@ -38,9 +47,6 @@ class InstructionFetch extends MultiIOModule {
   val PCOld = RegInit(UInt(32.W), 0.U)
 
   PCOld := io.PC
-
-
-  // printf("\n\n")
   /**
     * Setup. You should not change this code
     */
@@ -53,14 +59,26 @@ class InstructionFetch extends MultiIOModule {
     * 
     * You should expand on or rewrite the code below.
     */
-
+  
   val instruction = Wire(new Instruction)
-  when(io.controlSignals.jump || io.controlSignals.branch) {
-    PC := io.PCNew
-  } otherwise {
-    when(io.stallIn.===(1.U)){
+  // when(io.controlSignals.jump || io.controlSignals.branch) {
+  // when(io.predictionIsWrong) {
+  //   PC := io.PCbranchFromEX
+  // } .else
+  when(io.controlSignals.branch && !io.branchTaken) {
+  // when(io.branchControlSignals.branch && !io.predictionIsTaken) {
+    val init = Wire(UInt(32.W))
+    init := io.initPCbranch
+    PC := init + 4.U
+  } .elsewhen(io.controlSignals.branch && io.branchTaken) {
+  // } .elsewhen(io.branchControlSignals.branch && io.predictionIsTaken) {
+    PC := io.PCbranch
+  } .elsewhen(io.controlSignals.jump) {
+    PC := io.PCjump
+  } .otherwise {
+    when(io.stallIn.===(1.U)) {
       PC := PC
-    } .otherwise{
+    } .otherwise {
       PC := PC + 4.U
     }
   }

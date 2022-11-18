@@ -4,7 +4,6 @@ import chisel3.util.{ BitPat, MuxCase }
 import chisel3.experimental.MultiIOModule
 import chisel3.util.MuxLookup
 
-
 class Execute extends MultiIOModule {
 
   val io = IO(
@@ -44,6 +43,9 @@ class Execute extends MultiIOModule {
         val readData2Out    = Output(UInt(32.W))
 
         val isBranching    = Output(Bool())
+        val branchTaken    = Output(Bool())
+        val predictionIsTakenIn    = Input(Bool())
+        val predictionIsWrong   = Input(Bool())
         // val PCBranchingOut = Output(UInt(32.W))
 
     }
@@ -95,6 +97,23 @@ class Execute extends MultiIOModule {
   } .otherwise {
     alu.io.op2 := Mux(io.op2Select.=/=(0.asUInt), io.imm.asUInt, rs2)
   }
+  // alu.io.op1 := Mux(io.controlSignals.jump && io.branchType.=/=(branchType.jalr), io.PCIn, rs1)
+  // io.PCOut := Mux(io.controlSignals.jump && io.branchType.=/=(branchType.jalr), alu.io.aluResult, Mux(io.branchType.===(branchType.jalr), alu.io.aluResult.&("hfffffffe".asUInt(32.W)), io.PCIn))
+  // io.isBranching := io.branchTaken || Mux(io.controlSignals.jump, io.PCIn.=/=(alu.io.aluResult), false.B)
+  // io.dataOut := Mux(io.controlSignals.jump, io.PCIn + 4.U, alu.io.aluResult)
+  // when(io.controlSignals.jump) {
+  //   alu.io.op2 := io.imm.asUInt
+  // } .otherwise {
+  //   alu.io.op2 := Mux(io.op2Select.=/=(0.asUInt), io.imm.asUInt, rs2)
+  // }
+  io.branchTaken := io.controlSignals.branch && MuxLookup(io.branchType, false.B, Array(
+    branchType.beq -> rs1.===(rs2),
+    branchType.neq -> rs1.=/=(rs2),
+    branchType.lt -> rs1.<(rs2),
+    branchType.gte -> rs1.>(rs2),
+    branchType.ltu -> rs1.asUInt.<(rs2.asUInt),
+    branchType.gteu -> rs1.asUInt.>(rs2.asUInt),
+  ))
 
   io.instructionOut := io.instructionIn
   io.controlSignalsOut := io.controlSignals

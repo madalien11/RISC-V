@@ -8,6 +8,12 @@ class EXBarrier extends MultiIOModule {
   val io = IO(
     new Bundle {
         val PCIn = Input(UInt(32.W))
+        val PCBranchIn = Input(UInt(32.W))
+        val PCBranchOut = Output(UInt(32.W))
+        val initPCBranchIn = Input(UInt(32.W))
+        val initPCBranchOut = Output(UInt(32.W))
+        val branchTakenIn    = Input(Bool())
+        val branchTakenOut    = Output(Bool())
         val instructionIn = Input(new Instruction)
         val instructionOut = Output(new Instruction)
         val PCOut = Output(UInt(32.W))
@@ -38,6 +44,9 @@ class EXBarrier extends MultiIOModule {
   val instruction = RegInit(Reg(new Instruction))
   val data = RegInit(UInt(32.W), 0.U)
   val PC = RegInit(0.U(32.W))
+  val PCBranch = RegInit(0.U(32.W))
+  val initPCBranch = RegInit(0.U(32.W))
+  val branchTaken = RegInit(Bool(), false.B)
   val controlSignalsReg = RegInit(Reg(new ControlSignals))
   val branchTypeReg = RegInit(UInt(3.W), 0.U)
   val op1SelectReg = RegInit(UInt(1.W), 0.U)
@@ -59,10 +68,16 @@ class EXBarrier extends MultiIOModule {
   readData2Reg := io.readData2In 
   data := io.dataIn
   PC := io.PCIn
+  PCBranch := io.PCBranchIn
+  initPCBranch := io.initPCBranchIn
+  branchTaken := io.branchTakenIn
 
   io.instructionOut := instruction.asTypeOf(new Instruction)
   io.dataOut := data
   io.PCOut := PC
+  io.PCBranchOut := PCBranch
+  io.initPCBranchOut := initPCBranch
+  io.branchTakenOut := branchTaken
   io.controlSignalsOut := controlSignalsReg.asTypeOf(new ControlSignals)
   io.branchTypeOut := branchTypeReg
   io.op1SelectOut := op1SelectReg

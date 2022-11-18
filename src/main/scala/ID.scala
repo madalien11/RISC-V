@@ -5,6 +5,20 @@ import chisel3.experimental.MultiIOModule
 import chisel3.util.MuxLookup
 import chisel3.util.Cat
 
+class BHT extends MultiIOModule {
+  val io = IO(
+    new Bundle {
+      val key                 = Input(UInt(7.W))
+      val predictionIsTaken   = Output(Bool())
+      val predictionIsWrong   = Input(UInt(7.W))
+    })
+  
+  val branchReg = RegInit(Reg(Bool(), false.B))  
+  io.predictionIsTaken := Mux(io.key.asUInt.===("b1100011".U), branchReg, false.B)
+  when(io.predictionIsWrong.===("b1100011".U)) {
+    branchReg := !branchReg
+  }
+}
 
 class InstructionDecode extends MultiIOModule {
 
@@ -33,6 +47,8 @@ class InstructionDecode extends MultiIOModule {
         val EXinstructionIn = Input(new Instruction)
         val EXcontrolSignalsIn = Input(new ControlSignals)
         
+        val PCBranchOut = Output(UInt(32.W))
+        val initPCBranchOut = Output(UInt(32.W))
         val PCOut = Output(UInt(32.W))
         val instructionOut = Output(new Instruction)
         val controlSignalsOut = Output(new ControlSignals)
@@ -102,4 +118,12 @@ class InstructionDecode extends MultiIOModule {
   
   io.stallOut := io.EXcontrolSignalsIn.memRead && (io.EXinstructionIn.registerRd.===(io.instruction.registerRs1) || io.EXinstructionIn.registerRd.===(io.instruction.registerRs2))
 
+  val alu = Module(new ALU)
+  alu.io.instructionIn := io.instruction
+  alu.io.aluOp := decoder.ALUop
+
+  alu.io.op1 := io.PCIn
+  alu.io.op2 := io.immOut.asUInt
+  io.PCBranchOut := alu.io.aluResult
+  io.initPCBranchOut := io.PCIn
 }

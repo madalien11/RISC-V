@@ -14,9 +14,13 @@ class IFBarrier extends MultiIOModule {
 
         val stallIn    = Input(UInt(1.W))
         val isBranching = Input(Bool())
+        val predictionIsTakenIn   = Input(Bool())
+        val predictionIsTakenOut   = Output(Bool())
+        val predictionIsWrong   = Input(Bool())
     }
   )
   val PC = RegInit(0.U(32.W))
+  val predictionIsTaken = RegInit(Reg(Bool()))
 
   when(io.stallIn.===(1.U)) {
     PC := io.PCOut
@@ -29,6 +33,7 @@ class IFBarrier extends MultiIOModule {
   } .otherwise {
     io.instructionOut := io.instructionIn
   }
-
+  predictionIsTaken := io.predictionIsTakenIn
+  io.predictionIsTakenOut := predictionIsTaken
   io.PCOut := PC
 }
